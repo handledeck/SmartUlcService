@@ -1,4 +1,5 @@
 ﻿using IniParser.Parser;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SmartUlcService
@@ -15,15 +17,48 @@ namespace SmartUlcService
     /// <summary>
     /// Главная точка входа для приложения.
     /// </summary>
-    
-    static string __file = "UlcSrvSettings.ini";
+    static readonly NLog.Logger __logger = NLog.LogManager.GetCurrentClassLogger();
+    static string __ini_file_srv = "UlcSrvSettings.ini";
+    static string __cfg_file_log ="ulcSrvLogs.txt";
     static string __service_path;
+
+    private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+    // create a static logger field
+    // private static Logger logger = LogManager.GetCurrentClassLogger();
     static void Main()
     {
-      __service_path = AssemblyDirectory + "\\" + __file;
-      //__workingDirectory = Environment.CurrentDirectory;
-      // __service_path = string.Format("{0}\\{1}", __workingDirectory, __file);
-      ReadIniFile();
+      var config = new NLog.Config.LoggingConfiguration();
+      //DateTime dt = DateTime.Now.ToString();
+      // Targets where to log to: File and Console
+     
+      var logfile = new NLog.Targets.FileTarget("logfile")
+      {
+        FileName = __cfg_file_log,
+        ArchiveEvery = NLog.Targets.FileArchivePeriod.Minute,
+        ArchiveFileName = "${basedir}/logs/${date:format=yyyy-MM-dd HH-mm-ss}.txt",
+         MaxArchiveFiles=3
+      };
+      var logconsole = new NLog.Targets.ConsoleTarget("logconsole");
+
+      // Rules for mapping loggers to targets            
+      config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
+      config.AddRule(LogLevel.Debug, LogLevel.Fatal, logfile);
+
+      // Apply config           
+      NLog.LogManager.Configuration = config;
+      while (true)
+      {
+        Logger.Info("Hello world");
+        Thread.Sleep(800);
+      }
+      
+      //var config =new NLog.Config.LoggingConfiguration();
+      //var logFile = new NLog.Targets.FileTarget(__cfg_file_log) { ArchiveEvery= NLog.Targets.FileArchivePeriod.Day};
+      //config.AddRuleForAllLevels(logFile);
+      //NLog.LogManager.Configuration = config;
+      //__service_path = AssemblyDirectory + "\\" + __ini_file_srv;
+      //Logger.Info("11111");
+      //ReadIniFile();
 
       //ServiceBase[] ServicesToRun;
       //ServicesToRun = new ServiceBase[]
@@ -47,7 +82,7 @@ namespace SmartUlcService
       IniParser.Model.IniData iniUser = new IniParser.Model.IniData();
       dbUser.Comments.Add("section for user");
       dbUser.Keys.AddKey("user", "postgres");
-      dbUser.Keys.AddKey("password", "");
+      dbUser.Keys.AddKey("password", "root");
       //dbUser.Keys.AddKey("port", "5432");
 
       iniDb.Sections.Add(dbUser);
@@ -62,9 +97,10 @@ namespace SmartUlcService
       try
       {
         bool fExt = File.Exists(__service_path);
-
+        
         if (!fExt)
         {
+          __logger.Error("aaaaaa!!");
           WriteIniSrv(__service_path);
         }
         else
