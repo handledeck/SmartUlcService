@@ -1,7 +1,7 @@
 ﻿
 namespace SmartUlcService
 {
-  partial class SmUlcSrv
+  partial class SmartUlcSrv
   {
     /// <summary> 
     /// Обязательная переменная конструктора.
